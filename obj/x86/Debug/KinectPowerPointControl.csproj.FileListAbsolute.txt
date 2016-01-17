@@ -1,0 +1,14 @@
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\bin\Debug\KinectPowerPointControl.exe
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\bin\Debug\KinectPowerPointControl.pdb
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\bin\Debug\Microsoft.Kinect.dll
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\bin\Debug\Microsoft.Kinect.xml
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl.csprojResolveAssemblyReference.cache
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\MainWindow.baml
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\MainWindow.g.cs
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\App.g.cs
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl_MarkupCompile.cache
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl.g.resources
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl.Properties.Resources.resources
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl.csproj.GenerateResource.Cache
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl.exe
+C:\Users\Enioluwa\Downloads\Compressed\KinectPowerPointControl.srcbin\KinectPowerPointControl\obj\x86\Debug\KinectPowerPointControl.pdb
