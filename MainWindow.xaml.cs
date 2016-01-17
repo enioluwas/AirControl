@@ -239,7 +239,7 @@ namespace KinectPowerPointControl
                 if (!isCrossGestureActive)
                 {
                     isCrossGestureActive = true;
-                    System.Windows.Forms.SendKeys.SendWait("^{ESC}{TAB}");
+                    System.Windows.Forms.SendKeys.SendWait("{ESC}");
                 }
                 
             }
