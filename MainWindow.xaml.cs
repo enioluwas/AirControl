@@ -19,25 +19,36 @@ using Microsoft.Speech.AudioFormat;
 using System.Diagnostics;
 using System.Windows.Threading;
 
-namespace KinectPowerPointControl
+namespace AirControl
 {
     public partial class MainWindow : Window
     {
+        //Initializes the Kinect Camera and the Speech Recognition engine
         KinectSensor sensor;
         SpeechRecognitionEngine speechRecognizer;
 
+        //Starts the 'real clock' timer used in measuring fps
         DispatcherTimer readyTimer;
 
+        //Initializes the byte array
         byte[] colorBytes;
+
+        //The skeletal framework the Kinect offers was used
         Skeleton[] skeletons;
 
+        // Definition of important boolean variables to be used later
         bool isCirclesVisible = true;
 
         bool isForwardGestureActive = false;
         bool isBackGestureActive = false;
         bool isCrossGestureActive = false;
-        SolidColorBrush activeBrush = new SolidColorBrush(Colors.Green);
-        SolidColorBrush inactiveBrush = new SolidColorBrush(Colors.Red);
+        bool isPushGestureActive = false;
+        bool isPullGestureActive = false;
+        bool isLaunchSlideActive = false;
+
+        // Definition of color for when commands are being executed or not
+        SolidColorBrush activeBrush = new SolidColorBrush(Colors.LightSkyBlue);
+        SolidColorBrush inactiveBrush = new SolidColorBrush(Colors.LightGray);
 
         public MainWindow()
         {
@@ -46,23 +57,26 @@ namespace KinectPowerPointControl
             //Runtime initialization is handled when the window is opened. When the window
             //is closed, the runtime MUST be unitialized.
             this.Loaded += new RoutedEventHandler(MainWindow_Loaded);
-            //Handle the content obtained from the video camera, once received.
+            //Handles the content obtained from the video camera, once received.
 
             this.KeyDown += new KeyEventHandler(MainWindow_KeyDown);
         }
 
+        // Test the proper Pc to Kinect conection
         void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             sensor = KinectSensor.KinectSensors.FirstOrDefault();
 
             if (sensor == null)
             {
-                MessageBox.Show("This application requires a Kinect sensor.");
+                MessageBox.Show("Please properly configure the Kinect Sensor.");
                 this.Close();
             }
 
+            // Initalize live camera feed from the sensor
             sensor.Start();
 
+            // Standard resolution for video and depth detection
             sensor.ColorStream.Enable(ColorImageFormat.RgbResolution640x480Fps30);
             sensor.ColorFrameReady += new EventHandler<ColorImageFrameReadyEventArgs>(sensor_ColorFrameReady);
 
@@ -71,15 +85,20 @@ namespace KinectPowerPointControl
             sensor.SkeletonStream.Enable();
             sensor.SkeletonFrameReady += new EventHandler<SkeletonFrameReadyEventArgs>(sensor_SkeletonFrameReady);
 
-            //sensor.ElevationAngle = 10;
+            // Edits the sensor's elevation angle. Moslty not needed, but just in case
+
+            sensor.ElevationAngle = 20;
+
 
             Application.Current.Exit += new ExitEventHandler(Current_Exit);
 
+            //Set up simple speech commands
             InitializeSpeechRecognition();
         }
 
         void Current_Exit(object sender, ExitEventArgs e)
         {
+            // Test for Microsoft Speech compatability
             if (speechRecognizer != null)
             {
                 speechRecognizer.RecognizeAsyncCancel();
@@ -96,12 +115,14 @@ namespace KinectPowerPointControl
 
         void MainWindow_KeyDown(object sender, KeyEventArgs e)
         {
+            //Toggle the display of the command display circles
             if (e.Key == Key.C)
             {
                 ToggleCircles();
             }
         }
-
+        
+        // This tells the Kinect that we want complete RGB live feed 
         void sensor_ColorFrameReady(object sender, ColorImageFrameReadyEventArgs e)
         {
             using (var image = e.OpenColorImageFrame())
@@ -117,15 +138,17 @@ namespace KinectPowerPointControl
 
                 image.CopyPixelDataTo(colorBytes);
 
-                //You could use PixelFormats.Bgr32 below to ignore the alpha,
-                //or if you need to set the alpha you would loop through the bytes 
-                //as in this loop below
+                /*You could use PixelFormats.Bgr32 below to ignore the alpha,
+                or if you need to set the alpha you would loop through the bytes 
+                as in this loop below*/
+
                 int length = colorBytes.Length;
                 for (int i = 0; i < length; i += 4)
                 {
                     colorBytes[i + 3] = 255;
                 }
 
+                // Dictate the quality of the sensor detection through bitmapping
                 BitmapSource source = BitmapSource.Create(image.Width,
                     image.Height,
                     96,
@@ -138,6 +161,7 @@ namespace KinectPowerPointControl
             }
         }
         
+        // Prepare the initialized skeleton framework for its specific use
         void sensor_SkeletonFrameReady(object sender, SkeletonFrameReadyEventArgs e)
         {
             using (var skeletonFrame = e.OpenSkeletonFrame())
@@ -161,34 +185,36 @@ namespace KinectPowerPointControl
             if (closestSkeleton == null)
                 return;
 
+            // The only three parts of the skeletal framework used
             var head = closestSkeleton.Joints[JointType.Head];
             var rightHand = closestSkeleton.Joints[JointType.HandRight];
             var leftHand = closestSkeleton.Joints[JointType.HandLeft];
 
+            // This turns of the [circle]  trackers if one of the body parts cannot be identified
             if (head.TrackingState == JointTrackingState.NotTracked ||
                 rightHand.TrackingState == JointTrackingState.NotTracked ||
                 leftHand.TrackingState == JointTrackingState.NotTracked)
             {
-                //Don't have a good read on the joints so we cannot process gestures
+                
                 return;
             }
 
+            // Set the possible states for each of the three circles
             SetEllipsePosition(ellipseHead, head, false);
-            SetEllipsePosition(ellipseLeftHand, leftHand, isBackGestureActive);
-            SetEllipsePosition(ellipseRightHand, rightHand, isForwardGestureActive);
+            SetEllipsePosition(ellipseLeftHand, leftHand, isBackGestureActive || isCrossGestureActive || isPushGestureActive || isLaunchSlideActive);
+            SetEllipsePosition(ellipseRightHand, rightHand, isForwardGestureActive || isCrossGestureActive || isPullGestureActive || isLaunchSlideActive);
             
 
             ProcessForwardBackGesture(head, rightHand, leftHand);
         }
 
-        //This method is used to position the ellipses on the canvas
-        //according to correct movements of the tracked joints.
+        //This method shows exactly when a command is being executed (red turns green)
         private void SetEllipsePosition(Ellipse ellipse, Joint joint, bool isHighlighted)
         {
             if (isHighlighted)
             {
-                ellipse.Width = 60;
-                ellipse.Height = 60;
+                ellipse.Width = 20;
+                ellipse.Height = 20;
                 ellipse.Fill = activeBrush;
             }
             else
@@ -198,6 +224,7 @@ namespace KinectPowerPointControl
                 ellipse.Fill = inactiveBrush;
             }
 
+            // Final set up for RGB feed and skeletal framework to scale the sensors for gestures
             CoordinateMapper mapper = sensor.CoordinateMapper;
 
             var point = mapper.MapSkeletonPointToColorPoint(joint.Position, sensor.ColorStream.Format);
@@ -206,21 +233,26 @@ namespace KinectPowerPointControl
             Canvas.SetTop(ellipse, point.Y - ellipse.ActualHeight / 2);
         }
         
+        // These boolean arguments provide the basis for the commands to be executed
         private void ProcessForwardBackGesture(Joint head, Joint rightHand, Joint leftHand)
-        {
+        {   
+            // Hand gestures are relative to the position of the head
+
+            // If the right hand is extended to the right, execute the right arrow key
             if (rightHand.Position.X > head.Position.X + 0.45)
             {
                 if (!isForwardGestureActive)
                 {
                     isForwardGestureActive = true;
-                    System.Windows.Forms.SendKeys.SendWait("{Right}");
+                    System.Windows.Forms.SendKeys.SendWait("{Right}"); // The keyboard key right is executed in the active application
                 }
             }
             else
             {
-                isForwardGestureActive = false;
+                isForwardGestureActive = false; //prevents repititive execution of the arrow key
             }
 
+            // If the left hand is extended to the left, execute thr left arrow key
             if (leftHand.Position.X < head.Position.X - 0.45)
             {
                 if (!isBackGestureActive)
@@ -234,7 +266,7 @@ namespace KinectPowerPointControl
                 isBackGestureActive = false;
             }
 
-            if (rightHand.Position.X < leftHand.Position.X - 0.20)
+            if (rightHand.Position.X < leftHand.Position.X - 0.20) 
             {
                 if (!isCrossGestureActive)
                 {
@@ -247,8 +279,70 @@ namespace KinectPowerPointControl
             {
                 isCrossGestureActive = false;
             }
+
+            if (rightHand.Position.Y > head.Position.Y + 0.20)
+            {
+                if (!isLaunchSlideActive)
+                {
+                    isLaunchSlideActive = true;
+                    System.Windows.Forms.SendKeys.SendWait("{F5}");
+                }
+
+            }
+            else
+            {
+                isLaunchSlideActive = false;
+            }
+
+            if (leftHand.Position.Y > head.Position.Y + 0.20)
+            {
+                if (!isLaunchSlideActive)
+                {
+                    isLaunchSlideActive = true;
+                    System.Windows.Forms.SendKeys.SendWait("{F5}");
+                }
+
+            }
+            else
+            {
+                isLaunchSlideActive = false;
+            }
+
+
+            // Using 'the force' to control the enter and backspace keys
+            if (leftHand.Position.Z < head.Position.Z - 0.45)
+            {
+                if(!isPushGestureActive)
+                {
+                    isPushGestureActive = true;
+                    System.Windows.Forms.SendKeys.SendWait("{Up}");
+                }
+
+                else
+                {
+                    isPushGestureActive = false;
+                }
+            }
+
+            //When using the z-coordinate, the commands act differently. It repeatedly loops the command about 3 times a second, which is very queer but has no definite solution.
+            if (rightHand.Position.Z < head.Position.Z - 0.45)
+            {
+                if (!isPullGestureActive)
+                {
+                    isPullGestureActive = true;
+                    System.Windows.Forms.SendKeys.SendWait("{Down}");
+                }
+
+                else
+                {
+                    isPullGestureActive = false;
+                }
+            }
+
         }
         
+
+        // Code to toggle the visibility of the circles
         void ToggleCircles()
         {
             if (isCirclesVisible)
@@ -272,7 +366,40 @@ namespace KinectPowerPointControl
             ellipseLeftHand.Visibility = System.Windows.Visibility.Visible;
             ellipseRightHand.Visibility = System.Windows.Visibility.Visible;
         }
+        // External Commands
+        void Shoot()
+        {
+            System.Windows.Forms.SendKeys.SendWait("{Enter}");
+            
+        }
+        void Paragraph()
+        {
+            System.Windows.Forms.SendKeys.SendWait("{TAB}");
 
+        }
+        void Start()
+        {
+            System.Windows.Forms.SendKeys.SendWait("^{ESC}");
+
+        }
+        void Switch()
+        {
+            System.Windows.Forms.SendKeys.SendWait("%{TAB}");
+
+        }
+        void Closer()
+        {
+            System.Windows.Forms.SendKeys.SendWait("%{F4}");
+
+        }
+        void Screenshot()
+        {
+            System.Windows.Forms.SendKeys.SendWait("{PRTSC}");
+
+        }
+
+
+        // Code to toggle the visibility of the app window
         private void ShowWindow()
         {
             this.Topmost = true;
@@ -285,6 +412,8 @@ namespace KinectPowerPointControl
             this.WindowState = System.Windows.WindowState.Minimized;
         }
 
+       
+       
         #region Speech Recognition Methods
 
         private static RecognizerInfo GetKinectRecognizer()
@@ -298,6 +427,8 @@ namespace KinectPowerPointControl
             return SpeechRecognitionEngine.InstalledRecognizers().Where(matchingFunc).FirstOrDefault();
         }
 
+
+        // Make sure it is known to the user that the Speech recongition does not work, if it doesn't.
         private void InitializeSpeechRecognition()
         {
             RecognizerInfo ri = GetKinectRecognizer();
@@ -331,6 +462,12 @@ Ensure you have the Microsoft Speech SDK installed and configured.",
             phrases.Add("computer hide window");
             phrases.Add("computer show circles");
             phrases.Add("computer hide circles");
+            phrases.Add("shoot");
+            phrases.Add("paragraph");
+            phrases.Add("start");
+            phrases.Add("switch");
+            phrases.Add("close");
+            phrases.Add("screenshot");
 
             var gb = new GrammarBuilder();
             //Specify the culture to match the recognizer in case we are running in a different culture.                                 
@@ -387,9 +524,10 @@ Ensure you have the Microsoft Speech SDK installed and configured.",
 
         void SreSpeechRecognized(object sender, SpeechRecognizedEventArgs e)
         {
-            //This first release of the Kinect language pack doesn't have a reliable confidence model, so 
-            //we don't use e.Result.Confidence here.
-            if (e.Result.Confidence < 0.70)
+            /*This release of the Kinect language pack doesn't have a  too-reliable confidence model, so 
+            we don't use e.Result.Confidence here. */
+
+            if (e.Result.Confidence < 0.40)
             {
                 Trace.WriteLine("\nSpeech Rejected filtered, confidence: " + e.Result.Confidence);
                 return;
@@ -423,6 +561,48 @@ Ensure you have the Microsoft Speech SDK installed and configured.",
                 this.Dispatcher.BeginInvoke((Action)delegate
                 {
                     this.ShowCircles();
+                });
+            }
+            else if (e.Result.Text == "shoot")
+            {
+                this.Dispatcher.BeginInvoke((Action)delegate
+                {
+                    this.Shoot();
+                });
+            }
+            else if (e.Result.Text == "paragraph")
+            {
+                this.Dispatcher.BeginInvoke((Action)delegate
+                {
+                    this.Paragraph();
+                });
+            }
+            else if (e.Result.Text == "start")
+            {
+                this.Dispatcher.BeginInvoke((Action)delegate
+                {
+                    this.Start();
+                });
+            }
+            else if (e.Result.Text == "switch")
+            {
+                this.Dispatcher.BeginInvoke((Action)delegate
+                {
+                    this.Switch();
+                });
+            }
+            else if (e.Result.Text == "close")
+            {
+                this.Dispatcher.BeginInvoke((Action)delegate
+                {
+                    this.Closer();
+                });
+            }
+            else if (e.Result.Text == "screenshot")
+            {
+                this.Dispatcher.BeginInvoke((Action)delegate
+                {
+                    this.Screenshot();
                 });
             }
         }
