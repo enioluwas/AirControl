@@ -19,7 +19,7 @@ using Microsoft.Speech.AudioFormat;
 using System.Diagnostics;
 using System.Windows.Threading;
 
-namespace KinectPowerPointControl
+namespace AirControl
 {
     public partial class MainWindow : Window
     {
