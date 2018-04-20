@@ -1,9 +1,9 @@
-﻿<Window x:Class="KinectPowerPointControl.MainWindow"
+﻿<Window x:Class="AirControl.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Kinect PowerPoint Control"
-        Height="480"
-        Width="640"
+        Title="AirControl v1.1"
+        Height="600"
+        Width="800"
         WindowState="Maximized">
     <Viewbox Stretch="Uniform">
         <Grid>
@@ -15,17 +15,23 @@
                          Height="20"
                          Width="20"
                          Name="ellipseLeftHand"
-                         Stroke="White" />
+                         Stroke="White"
+                         Canvas.Top="230"
+                         Canvas.Left="310"/>
                 <Ellipse Fill="Red"
                          Height="20"
                          Width="20"
                          Name="ellipseRightHand"
-                         Stroke="White" />
+                         Stroke="White"
+                         Canvas.Top="230"
+                         Canvas.Left="310"/>
                 <Ellipse Fill="Red"
                          Height="20"
                          Width="20"
                          Name="ellipseHead"
-                         Stroke="White" />
+                         Stroke="White" 
+                         Canvas.Top="230"
+                         Canvas.Left="310"/>
             </Canvas>
         </Grid>
     </Viewbox>
